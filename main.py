@@ -1,30 +1,18 @@
 import asyncio, os, sys
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from dotenv import load_dotenv
-from loader import clent, add_query, pop_query, GROUP_USERNAME, clear_queries, add_audio
+from loader import clent, add_audio, update_search_message
 from parser import parser_music
 
 
 
-@clent.on_message((filters.group) & (filters.text))
+@clent.on_message(filters.animation)
 async def message_handler(client: Client, message: Message):
-    global queries
-    if message.chat.username != GROUP_USERNAME.replace("@", ""):
+    if message.chat.username != "Music_to_you_bot":
         return
 
-
-    if message.text.startswith("/list"):
-        await message.reply("\n".join(queries) or "List bo'sh")
-
-    elif message.text.startswith("/tozala"):
-        await clear_queries()
-        await message.reply("List tozalandi")
-
-    else:
-        for query in message.text.split():
-            await add_query(query)
-
+    if message.caption.startswith("🎧"):
+        await update_search_message(message)
 
 
 @clent.on_message(filters.audio)
@@ -33,17 +21,24 @@ async def copy_music(client: Client, message: Message):
         return
 
     await add_audio(message)
-
+    
 
 async def loop():
-    while True:
-        await asyncio.sleep(5)
-        query = await pop_query()
-        if query:
-            try:
-                await parser_music(query, clent)
-            except Exception as e:
-                print(e)
+    with open("musics.txt") as f:
+        text = f.read()
+    await asyncio.sleep(5)
+    queries = [query.strip() for query in text.split("\n") if query.strip()]
+    
+    for index, query in enumerate(queries):
+        print(index+1, query)
+        try:
+            await parser_music(query, clent)
+        except Exception as e:
+            print("loop:", e)
+
+
+    await clent.stop()
+    raise SystemExit()
 
 
 
